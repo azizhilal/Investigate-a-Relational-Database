@@ -1,0 +1,151 @@
+/* Query 1 - querey used for first insight */
+
+SELECT
+   f.title AS film_title,
+   c.name AS category_name,
+   COUNT(*) AS rental_count 
+FROM
+   film f 
+   JOIN
+      film_category fc 
+      ON f.film_id = fc.film_id 
+   JOIN
+      category c 
+      ON fc.category_id = c.category_id 
+   JOIN
+      inventory i 
+      ON f.film_id = i.film_id 
+   JOIN
+      rental r 
+      ON i.inventory_id = r.inventory_id 
+WHERE
+   c.name IN 
+   (
+      'Animation',
+      'Children',
+      'Classics',
+      'Comedy',
+      'Family',
+      'Music'
+   )
+GROUP BY
+   c.name,
+   f.title 
+ORDER BY
+   c.name,
+   f.title;
+
+/* Query 2 - querey used for second insight */
+
+SELECT
+   f.title AS film_title,
+   c.name AS category_name,
+   COUNT(*) AS rental_count 
+FROM
+   film f 
+   JOIN
+      film_category fc 
+      ON f.film_id = fc.film_id 
+   JOIN
+      category c 
+      ON fc.category_id = c.category_id 
+   JOIN
+      inventory i 
+      ON f.film_id = i.film_id 
+   JOIN
+      rental r 
+      ON i.inventory_id = r.inventory_id 
+WHERE
+   c.name NOT IN 
+   (
+      'Animation',
+      'Children',
+      'Classics',
+      'Comedy',
+      'Family',
+      'Music'
+   )
+GROUP BY
+   c.name,
+   f.title 
+ORDER BY
+   c.name,
+   f.title;
+
+/* Query 3 - querey used for third insight */
+
+WITH family_film_quan AS 
+(
+   SELECT
+      f.title AS f_title,
+      c.name AS name,
+      f.rental_duration AS f_rental_duration,
+      NTILE(4) OVER (
+   ORDER BY
+      f.rental_duration) AS standard_quartile 
+   FROM
+      film f 
+      JOIN
+         film_category fc 
+         ON f.film_id = fc.film_id 
+      JOIN
+         category c 
+         ON c.category_id = fc.category_id 
+   WHERE
+      c.name IN 
+      (
+         'Animation',
+         'Children',
+         'Classics',
+         'Comedy',
+         'Family',
+         'Music'
+      )
+)
+SELECT
+   name,
+   standard_quartile,
+   COUNT(*) 
+FROM
+   family_film_quan 
+GROUP BY
+   name,
+   standard_quartile 
+ORDER BY
+   name,
+   standard_quartile;
+
+/* Query 4 - querey used for fourth insight */
+
+WITH top_customer AS 
+(
+   SELECT
+      CONCAT(c.first_name, ' ', c.last_name) AS fullname,
+      c.customer_id,
+      SUM(p.amount) AS total_amount 
+   FROM
+      payment p 
+      JOIN
+         customer c 
+         ON p.customer_id = c.customer_id 
+   GROUP BY
+      fullname,
+      c.customer_id 
+   ORDER BY
+      total_amount DESC LIMIT 10 
+)
+SELECT
+   DATE_TRUNC('month', payment_date) AS pay_month,
+   fullname,
+   count(*) AS pay_countpermon,
+   sum(p.amount) AS pay_amount 
+FROM
+   top_customer 
+   JOIN
+      payment p 
+      ON p.customer_id = top_customer.customer_id 
+GROUP BY
+   pay_month,
+   fullname 
+ORDER BY
+   fullname;
